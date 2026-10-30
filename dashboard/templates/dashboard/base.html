@@ -7,7 +7,7 @@
     {% endblock %}
 
     {% load static %}
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
     <link href="{% static 'dashboard/css/bootstrap.min.css'%}" rel="stylesheet">
     <link href="{% static 'dashboard/css/sticky-footer-navbar.css'%}" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -31,6 +31,9 @@
     <header class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
         <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
             <li><a href="{% url 'dashboard:index' %}" class="nav-link px-2 link-secondary">Главная</a></li>
+            {% if user.is_authenticated %}
+                <li><a href="{% url 'dashboard:portfolio' %}" class="nav-link px-2 link-secondary">Мой портфель</a></li>
+            {% endif %}
         </ul>
 
         <div class="col-md-3 text-end">
@@ -49,6 +52,14 @@
 <main class="flex-shrink-0">
     <div class="container">
 
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
         {% block content %}
         {% endblock %}
 
@@ -60,6 +71,9 @@
     <div class="container">
         <ul class="nav justify-content-center border-bottom pb-3 mb-3">
             <li class="nav-item"><a href="{% url 'dashboard:index' %}" class="nav-link px-2 text-muted">Главная</a></li>
+            {% if user.is_authenticated %}
+                <li class="nav-item"><a href="{% url 'dashboard:portfolio' %}" class="nav-link px-2 text-muted">Мой портфель</a></li>
+            {% endif %}
         </ul>
         <p class="text-center text-muted">Investing</p>
     </div>

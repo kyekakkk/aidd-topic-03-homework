@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from user.models import User
@@ -28,29 +29,32 @@ class RegistrationForm(forms.Form):
     )
 
     def clean(self):
-        super().clean()
-        email = self.cleaned_data["email"]
-        password1 = self.cleaned_data["password1"]
-        password2 = self.cleaned_data["password2"]
+        cleaned = super().clean()
+        email = (cleaned.get("email") or "").strip().lower()
+        password1 = cleaned.get("password1")
+        password2 = cleaned.get("password2")
+
         if password1 and password2 and password1 != password2:
-            errors = ["Введенные пароли не совпадают"]
-            raise ValidationError(errors)
+            raise ValidationError("Введенные пароли не совпадают")
 
-        user = User.objects.filter(email=email)
+        if email:
+            # e-mail используется как логин, поэтому проверяем его без учёта регистра
+            if User.objects.filter(email__iexact=email).exists():
+                raise ValidationError(
+                    "Данный e-mail уже зарегистрирован! Введите другой e-mail или"
+                    " воспользуйтесь формой авторизации."
+                )
+            if password1:
+                validate_password(password1)
 
-        if user:
-            errors = [
-                "Данный e-mail уже зарегистрирован! Введите другой e-mail или"
-                " воспользуйтесь формой авторизации."
-            ]
-            raise ValidationError(errors)
+        cleaned["email"] = email
+        return cleaned
 
     def save(self):
         email = self.cleaned_data["email"]
         password = self.cleaned_data["password1"]
         User.objects.create_user(email, email, password)
-        user = authenticate(username=email, password=password)
-        return user
+        return authenticate(username=email, password=password)
 
 
 class AuthForm(forms.Form):

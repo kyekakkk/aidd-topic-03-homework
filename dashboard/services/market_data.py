@@ -1,11 +1,13 @@
-from tinkoff.invest import Client
-
-from config.settings import TINKOFF_TOKEN, logger
+from config.settings import logger
 
 
-def get_last_data(share):
-    with Client(TINKOFF_TOKEN) as client:
-        resp = client.market_data.get_last_prices(figi=[share.figi])
-        resp = resp.last_prices.pop()
-        logger.info(f"Get last data for share with id {share.id}")
-        return [resp.price.units, resp.time]
+def get_last_data(client, share):
+    """Возвращает последнюю цену и время сделки по акции.
+
+    Клиент Tinkoff API передаётся извне, чтобы переиспользовать одно
+    соединение при массовом обновлении цен (см. dashboard/tasks.py).
+    """
+    resp = client.market_data.get_last_prices(figi=[share.figi])
+    last_price = resp.last_prices.pop()
+    logger.info(f"Get last data for share with id {share.id}")
+    return last_price.units, last_price.time

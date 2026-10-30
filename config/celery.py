@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from celery import Celery
 
@@ -11,8 +12,8 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
-    "add-every-5-min": {
+    "update-last-price-every-5-min": {
         "task": "dashboard.tasks.update_last_price",
-        "schedule": 10.0,
+        "schedule": timedelta(minutes=5),
     },
 }
