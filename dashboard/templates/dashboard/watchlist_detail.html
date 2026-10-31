@@ -1,0 +1,98 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}
+    <title>{{ watchlist.name }}</title>
+{% endblock %}
+
+{% block content %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><a href="{% url 'dashboard:watchlists' %}">Наблюдение</a> / {{ watchlist.name }}</h3>
+        <form method="post" action="{% url 'dashboard:watchlist_delete' watchlist.id %}"
+              onsubmit="return confirm('Удалить список «{{ watchlist.name|escapejs }}» вместе с целевыми уровнями?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить список</button>
+        </form>
+    </div>
+
+    {% if items %}
+        {% for item in items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <a href="{% url 'dashboard:detail' item.share.id %}">{{ item.share.ticker }}</a>
+                                <small class="text-muted">{{ item.share.name }}</small>
+                            </h5>
+                            <p class="mb-2">
+                                Текущая цена:
+                                {% if item.share.is_trend_high is None %}
+                                    <b>
+                                {% elif item.share.is_trend_high %}
+                                    <b style="color: seagreen">
+                                {% else %}
+                                    <b style="color: crimson">
+                                {% endif %}
+                                {{ item.share.last_price|floatformat:2|default:"—" }} {{ item.share.currency }}</b>
+                                · <a href="{% url 'dashboard:history' item.share.id %}">история цен</a>
+                            </p>
+                        </div>
+                        <form method="post" action="{% url 'dashboard:watchlist_item_delete' item.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Убрать из списка</button>
+                        </form>
+                    </div>
+
+                    {% if item.alerts.all %}
+                        <table class="table table-sm mb-2">
+                            <tbody>
+                            {% for alert in item.alerts.all %}
+                                <tr>
+                                    <td>{{ alert.get_direction_display }} <b>{{ alert.target_price|floatformat:2 }}</b></td>
+                                    <td>
+                                        {% if alert.is_triggered %}
+                                            <span class="badge bg-success">Достигнут {{ alert.triggered_at|date:"d.m.Y H:i" }} по {{ alert.triggered_price|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Ожидание</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" action="{% url 'dashboard:alert_delete' alert.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">удалить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'dashboard:alert_create' item.id %}" class="row g-2 align-items-center">
+                        {% csrf_token %}
+                        <div class="col-auto">
+                            <select name="direction" class="form-select form-select-sm" aria-label="Условие">
+                                {% for value, label in alert_form.fields.direction.choices %}
+                                    {% if value %}<option value="{{ value }}">{{ label }}</option>{% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <input type="number" name="target_price" step="any" min="0" required
+                                   class="form-control form-control-sm" placeholder="Целевая цена" aria-label="Целевая цена">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">Установить уровень</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            В списке пока нет акций. Откройте <a href="{% url 'dashboard:index' %}">акцию</a> и нажмите «В список наблюдения».
+        </div>
+    {% endif %}
+
+{% endblock %}

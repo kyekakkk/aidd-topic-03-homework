@@ -1,0 +1,55 @@
+{% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
+
+{% block title %}
+    <title>Динамика рынка</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3>Динамика рынка</h3>
+
+    {% include "dashboard/_period_tabs.html" %}
+
+    {% if rows %}
+        <h5>Лидеры роста и падения, %</h5>
+        <canvas id="price-chart" height="90"></canvas>
+
+        <table class="table table-striped mt-4">
+            <thead>
+            <tr>
+                <th scope="col">Тикер</th>
+                <th scope="col">Название</th>
+                <th scope="col">Начало периода</th>
+                <th scope="col">Последняя цена</th>
+                <th scope="col">Изменение</th>
+                <th scope="col">Изменение, %</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td><a href="{% url 'dashboard:history' row.share.id %}?period={{ period }}">{{ row.share.ticker }}</a></td>
+                    <td>{{ row.share.name }}</td>
+                    <td>{{ row.first|floatformat:2 }} {{ row.share.currency }}</td>
+                    <td>{{ row.last|floatformat:2 }} {{ row.share.currency }}</td>
+                    <td style="color: {{ row.change|change_color }}">{{ row.change|signed }}</td>
+                    <td style="color: {{ row.change|change_color }}">{{ row.change_percent|signed }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            За выбранный период истории цен нет. Она накапливается при обновлении цен или загружается командой
+            <code>python manage.py load_price_history</code>.
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    {% if rows %}
+        {% include "dashboard/_line_chart.html" with chart_type="bar" chart_label="Изменение, %" %}
+    {% endif %}
+{% endblock %}

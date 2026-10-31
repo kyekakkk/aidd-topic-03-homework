@@ -1,0 +1,68 @@
+{% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
+
+{% block title %}
+    <title>История цен {{ share.ticker }}</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3>История цен: <a href="{% url 'dashboard:detail' share.id %}">{{ share.ticker }}</a> — {{ share.name }}</h3>
+
+    {% include "dashboard/_period_tabs.html" %}
+
+    {% if stats %}
+        <div class="row mb-3">
+            <div class="col-auto">Начало периода: <b>{{ stats.first.price|floatformat:2 }}</b> <span class="text-muted">({{ stats.first.time|date:"d.m.Y H:i" }})</span></div>
+            <div class="col-auto">Последняя цена: <b>{{ stats.last.price|floatformat:2 }}</b> <span class="text-muted">({{ stats.last.time|date:"d.m.Y H:i" }})</span></div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-auto">Изменение:
+                <b style="color: {{ stats.change|change_color }}">{{ stats.change|signed }} {{ share.currency }} ({{ stats.change_percent|signed }}%)</b>
+            </div>
+            <div class="col-auto">Минимум: <b>{{ stats.min|floatformat:2 }}</b></div>
+            <div class="col-auto">Максимум: <b>{{ stats.max|floatformat:2 }}</b></div>
+            <div class="col-auto text-muted">Точек истории: {{ stats.count }}</div>
+        </div>
+
+        <canvas id="price-chart" height="100"></canvas>
+
+        <h5 class="mt-4">По дням</h5>
+        <table class="table table-striped table-sm">
+            <thead>
+            <tr>
+                <th scope="col">Дата</th>
+                <th scope="col">Закрытие</th>
+                <th scope="col">Минимум</th>
+                <th scope="col">Максимум</th>
+                <th scope="col">Изменение</th>
+                <th scope="col">Изменение, %</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for day in days %}
+                <tr>
+                    <td>{{ day.day|date:"d.m.Y" }}</td>
+                    <td>{{ day.close|floatformat:2 }}</td>
+                    <td>{{ day.min|floatformat:2 }}</td>
+                    <td>{{ day.max|floatformat:2 }}</td>
+                    <td style="color: {{ day.change|change_color }}">{{ day.change|signed }}</td>
+                    <td style="color: {{ day.change|change_color }}">{{ day.change_percent|signed }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            За выбранный период истории цен нет. История накапливается автоматически при обновлении цен
+            (задача Celery) или загружается командой <code>python manage.py load_price_history</code>.
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    {% if stats %}
+        {% include "dashboard/_line_chart.html" with chart_label=share.ticker %}
+    {% endif %}
+{% endblock %}

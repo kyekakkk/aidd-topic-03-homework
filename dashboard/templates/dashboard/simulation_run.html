@@ -1,0 +1,121 @@
+{% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
+
+{% block title %}
+    <title>Результат моделирования</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3 class="mb-3">
+        <a href="{% url 'dashboard:strategies' %}">Стратегии</a> /
+        <a href="{% url 'dashboard:strategy' strategy.id %}">{{ strategy.name }}</a> /
+        прогон {{ run.created_at|date:"d.m.Y H:i" }}
+    </h3>
+
+    <p class="text-muted">
+        {{ strategy.share.ticker }}, история «{{ period_title }}»: {{ run.date_from|date:"d.m.Y H:i" }} — {{ run.date_to|date:"d.m.Y H:i" }},
+        {{ run.points_count }} точек
+    </p>
+
+    <div class="row g-3 mb-3">
+        <div class="col-auto">Стартовый капитал: <b>{{ run.initial_capital|floatformat:2 }}</b></div>
+        <div class="col-auto">Итоговая стоимость: <b>{{ run.final_value|floatformat:2 }}</b></div>
+        <div class="col-auto">Результат:
+            <b style="color: {{ run.profit|change_color }}">{{ run.profit|signed }} ({{ run.return_percent|signed }}%)</b>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-auto">Цена акции за период:
+            <b style="color: {{ run.benchmark_return_percent|change_color }}">{{ run.benchmark_return_percent|signed }}%</b>
+            <span class="text-muted">(стратегия «купить и держать»)</span>
+        </div>
+        <div class="col-auto">Макс. просадка: <b>{{ run.max_drawdown_percent|floatformat:2 }}%</b></div>
+        <div class="col-auto">Сделок: <b>{{ run.trades_count }}</b>{% if closed %}, прибыльных продаж {{ winning }} из {{ closed }}{% endif %}</div>
+        {% if run.final_quantity %}
+            <div class="col-auto">Открытая позиция: <b>{{ run.final_quantity }} шт.</b> по {{ run.final_price|floatformat:2 }}, деньги {{ run.final_cash|floatformat:2 }}</div>
+        {% endif %}
+    </div>
+
+    <canvas id="run-chart" height="110"></canvas>
+
+    <h5 class="mt-4">Журнал виртуальных сделок</h5>
+    {% if trades %}
+        <table class="table table-striped table-sm">
+            <thead>
+            <tr>
+                <th scope="col">Время</th>
+                <th scope="col">Операция</th>
+                <th scope="col">Цена</th>
+                <th scope="col">Кол-во</th>
+                <th scope="col">Сумма</th>
+                <th scope="col">Комиссия</th>
+                <th scope="col">Результат</th>
+                <th scope="col">Деньги после</th>
+                <th scope="col">Причина</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for trade in trades %}
+                <tr>
+                    <td>{{ trade.time|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if trade.side == "buy" %}<span class="badge bg-success">Покупка</span>
+                        {% else %}<span class="badge bg-danger">Продажа</span>{% endif %}
+                    </td>
+                    <td>{{ trade.price|floatformat:2 }}</td>
+                    <td>{{ trade.quantity }}</td>
+                    <td>{{ trade.amount|floatformat:2 }}</td>
+                    <td>{{ trade.commission|floatformat:2 }}</td>
+                    <td style="color: {{ trade.profit|change_color }}">{{ trade.profit|signed }}</td>
+                    <td>{{ trade.cash_after|floatformat:2 }}</td>
+                    <td>{{ trade.reason }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            За период условия стратегии ни разу не выполнились — сделок не было. Попробуйте другой период или параметры.
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    {{ chart|json_script:"run-data" }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const data = JSON.parse(document.getElementById("run-data").textContent);
+            const date = v => new Date(v).toLocaleDateString("ru-RU");
+            new Chart(document.getElementById("run-chart"), {
+                data: {
+                    datasets: [
+                        {type: "line", label: "Стоимость портфеля", data: data.equity, yAxisID: "equity",
+                         borderColor: "#0d6efd", borderWidth: 2, pointRadius: 0},
+                        {type: "line", label: "Цена акции", data: data.price, yAxisID: "price",
+                         borderColor: "#adb5bd", borderWidth: 1, pointRadius: 0},
+                        {type: "scatter", label: "Покупка", data: data.buys, yAxisID: "price",
+                         backgroundColor: "seagreen", pointStyle: "triangle", pointRadius: 7},
+                        {type: "scatter", label: "Продажа", data: data.sells, yAxisID: "price",
+                         backgroundColor: "crimson", pointStyle: "triangle", rotation: 180, pointRadius: 7},
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    interaction: {mode: "nearest", intersect: false},
+                    plugins: {
+                        tooltip: {callbacks: {title: items => date(items[0].parsed.x)}},
+                    },
+                    scales: {
+                        x: {type: "linear", ticks: {callback: date, maxTicksLimit: 10}},
+                        equity: {type: "linear", position: "left", title: {display: true, text: "Портфель"}},
+                        price: {type: "linear", position: "right", grid: {drawOnChartArea: false},
+                                title: {display: true, text: "Цена"}},
+                    },
+                },
+            });
+        })();
+    </script>
+{% endblock %}

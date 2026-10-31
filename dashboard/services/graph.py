@@ -1,36 +1,43 @@
 from datetime import timedelta
 
+from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
+from django.utils.safestring import mark_safe
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
-from tinkoff.invest import CandleInterval, Client
-from tinkoff.invest.utils import now
 
-from config.settings import TINKOFF_TOKEN
+from dashboard.services.market_data import get_candles as fetch_candles
+
+HISTORY_DAYS = 180
+
+
+def get_candles(share):
+    cache_key = f"candles:{share.figi}"
+    candles = cache.get(cache_key)
+    if candles is None:
+        to = timezone.now()
+        candles = fetch_candles(share, to - timedelta(days=HISTORY_DAYS), to)
+        cache.set(cache_key, candles, settings.CANDLES_CACHE_TIMEOUT)
+    return candles
 
 
 def get_graph(share):
-    with Client(TINKOFF_TOKEN) as client:
-        x_data, y_data = [], []
-        for candle in client.get_all_candles(
-            figi=share.figi,
-            from_=now() - timedelta(days=180),
-            interval=CandleInterval.CANDLE_INTERVAL_DAY,
-        ):
-            x_data.append(candle.time.date())
-            y_data.append(candle.close.units)
+    """HTML-div с графиком цен закрытия. Может выбросить MarketDataError."""
+    candles = get_candles(share)
     plot_div = plot(
         [
             Scatter(
-                x=x_data,
-                y=y_data,
+                x=[time.date() for time, _ in candles],
+                y=[close for _, close in candles],
                 mode="lines",
-                name="test",
+                name=share.ticker,
                 opacity=0.8,
-                marker_color="red",
+                line_color="red",
             )
         ],
         output_type="div",
-        show_link=False,
-        link_text="",
+        include_plotlyjs="cdn",
     )
-    return plot_div
+    # Разметку генерирует plotly из числовых данных, экранирование не требуется
+    return mark_safe(plot_div)

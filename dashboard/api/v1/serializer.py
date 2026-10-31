@@ -13,7 +13,10 @@ class ShareSerializer(serializers.ModelSerializer):
             "name",
             "ticker",
             "currency",
+            "uid",
             "last_price",
             "is_trend_high",
             "updated_at",
         )
+        # Рыночные данные заполняет фоновая задача
+        read_only_fields = ("last_price", "is_trend_high", "updated_at")

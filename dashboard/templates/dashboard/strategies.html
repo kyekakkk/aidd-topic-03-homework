@@ -1,0 +1,53 @@
+{% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
+
+{% block title %}
+    <title>Стратегии</title>
+{% endblock %}
+
+{% block content %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Симулятор стратегий</h3>
+        <a href="{% url 'dashboard:strategy_create' %}" class="btn btn-primary">Новая стратегия</a>
+    </div>
+
+    {% if strategies %}
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th scope="col">Стратегия</th>
+                <th scope="col">Акция</th>
+                <th scope="col">Тип</th>
+                <th scope="col">Прогонов</th>
+                <th scope="col">Последний результат</th>
+                <th scope="col">Цена акции за тот же период</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for strategy in strategies %}
+                <tr>
+                    <td><a href="{% url 'dashboard:strategy' strategy.id %}">{{ strategy.name }}</a></td>
+                    <td>{{ strategy.share.ticker }}</td>
+                    <td>{{ strategy.get_kind_display }}</td>
+                    <td>{{ strategy.runs_count }}</td>
+                    {% if strategy.latest_run %}
+                        <td style="color: {{ strategy.latest_run.return_percent|change_color }}">
+                            <a href="{% url 'dashboard:simulation_run' strategy.latest_run.id %}" style="color: inherit">{{ strategy.latest_run.return_percent|signed }}%</a>
+                        </td>
+                        <td style="color: {{ strategy.latest_run.benchmark_return_percent|change_color }}">{{ strategy.latest_run.benchmark_return_percent|signed }}%</td>
+                    {% else %}
+                        <td>—</td><td>—</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            Стратегий пока нет. Создайте стратегию — например, «купить при падении на 5 % и продать при росте на 8 %» —
+            и смоделируйте её на истории цен: увидите журнал виртуальных сделок и итоговую доходность.
+        </div>
+    {% endif %}
+
+{% endblock %}

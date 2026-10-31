@@ -1,0 +1,60 @@
+{% extends "dashboard/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    <title>Новая стратегия</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3 class="mb-3"><a href="{% url 'dashboard:strategies' %}">Стратегии</a> / Новая стратегия</h3>
+
+    <div class="row">
+        <div class="col-md-8 col-lg-6">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+
+                {{ form.name|as_crispy_field }}
+                {{ form.share|as_crispy_field }}
+                {{ form.kind|as_crispy_field }}
+
+                {% for kind, fields in form.kind_groups %}
+                    <fieldset class="border rounded p-3 mb-3 strategy-params" data-kind="{{ kind }}">
+                        <legend class="fs-6">Условия сделок</legend>
+                        {% for field in fields %}
+                            {{ field|as_crispy_field }}
+                        {% endfor %}
+                    </fieldset>
+                {% endfor %}
+
+                {{ form.stop_loss_percent|as_crispy_field }}
+                <div class="row">
+                    <div class="col">{{ form.initial_capital|as_crispy_field }}</div>
+                    <div class="col">{{ form.commission_percent|as_crispy_field }}</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Создать</button>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Показываем только параметры выбранного типа стратегии
+        (function () {
+            const kind = document.getElementById("id_kind");
+            function toggle() {
+                document.querySelectorAll(".strategy-params").forEach(function (group) {
+                    group.style.display = group.dataset.kind === kind.value ? "" : "none";
+                });
+            }
+            kind.addEventListener("change", toggle);
+            toggle();
+        })();
+    </script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "dashboard/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    <title>Списки наблюдения</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3 class="mb-3">Списки наблюдения</h3>
+
+    <div class="row">
+        <div class="col-md-7">
+            {% if watchlists %}
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">Список</th>
+                        <th scope="col">Акций</th>
+                        <th scope="col">Сработавших уровней</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for watchlist in watchlists %}
+                        <tr>
+                            <td><a href="{% url 'dashboard:watchlist' watchlist.id %}">{{ watchlist.name }}</a></td>
+                            <td>{{ watchlist.items_count }}</td>
+                            <td>{{ watchlist.triggered_count }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-info">
+                    Списков пока нет. Создайте список или откройте
+                    <a href="{% url 'dashboard:index' %}">акцию</a> и нажмите «В список наблюдения».
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-5">
+            <h5>Новый список</h5>
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Создать</button>
+            </form>
+        </div>
+    </div>
+
+    {% if triggered %}
+        <h5 class="mt-4">Последние достигнутые уровни</h5>
+        <table class="table table-sm">
+            <thead>
+            <tr>
+                <th scope="col">Время</th>
+                <th scope="col">Акция</th>
+                <th scope="col">Условие</th>
+                <th scope="col">Цена в момент достижения</th>
+                <th scope="col">Список</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for alert in triggered %}
+                <tr>
+                    <td>{{ alert.triggered_at|date:"d.m.Y H:i" }}</td>
+                    <td><a href="{% url 'dashboard:detail' alert.item.share.id %}">{{ alert.item.share.ticker }}</a></td>
+                    <td>{{ alert.get_direction_display }} {{ alert.target_price|floatformat:2 }}</td>
+                    <td>{{ alert.triggered_price|floatformat:2 }}</td>
+                    <td><a href="{% url 'dashboard:watchlist' alert.item.watchlist.id %}">{{ alert.item.watchlist.name }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+{% endblock %}

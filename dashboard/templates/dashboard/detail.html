@@ -9,10 +9,44 @@
     <div class="col3"></div>
     <div class="col3">
         Инструмент: {{ share.name }} <br>
-        Текущая цена: {{ share.last_price }} {{ share.currency }} <br>
-        Время последнего обновления: {{ share.updated_at }}
+        Текущая цена: {{ share.last_price|default:"—" }} {{ share.currency }} <br>
+        Время последнего обновления: {{ share.updated_at|default:"—" }} <br>
+        {% load dashboard_extras %}
+        {% if month_stats %}
+            Изменение за месяц:
+            <b style="color: {{ month_stats.change|change_color }}">{{ month_stats.change|signed }} ({{ month_stats.change_percent|signed }}%)</b> ·
+        {% endif %}
+        <a href="{% url 'dashboard:history' share.id %}">История цен и динамика</a>
+        {% if user.is_authenticated %}
+            · <a href="{% url 'dashboard:strategy_create' %}?share={{ share.id }}">Протестировать стратегию</a>
+        {% endif %}
     </div>
-    <div class="col3"></div>
+    </div>
+
+    <div class="row mt-3">
+    <div class="col-md-6 col-lg-4">
+        <h5>Купить в портфель</h5>
+        {% if user.is_authenticated %}
+            {% load crispy_forms_tags %}
+            <form method="post" action="{% url 'dashboard:portfolio_buy' share.id %}">
+                {% csrf_token %}
+                {{ buy_form|crispy }}
+                <button type="submit" class="btn btn-success">Купить</button>
+            </form>
+        {% else %}
+            <p><a href="{% url 'user:auth' %}?next={{ request.path|urlencode }}">Войдите</a>, чтобы добавлять акции в портфель.</p>
+        {% endif %}
+    </div>
+    {% if watchlist_form %}
+        <div class="col-md-6 col-lg-4">
+            <h5>В список наблюдения</h5>
+            <form method="post" action="{% url 'dashboard:watchlist_add' share.id %}">
+                {% csrf_token %}
+                {{ watchlist_form|crispy }}
+                <button type="submit" class="btn btn-outline-primary">Добавить</button>
+            </form>
+        </div>
+    {% endif %}
     </div>
 
 
@@ -20,9 +54,11 @@
     <div class="col3"></div>
     <div class="col3">
     <h5>Исторические данные: </h5>
- {% autoescape off %}
-  {{ plot_div }}
-  {% endautoescape %}
+    {% if plot_div %}
+        {{ plot_div }}
+    {% else %}
+        <p class="text-muted">Исторические данные сейчас недоступны.</p>
+    {% endif %}
     </div>
     <div class="col3"></div>
     </div>

@@ -1,0 +1,32 @@
+{# Линейный график Chart.js. Ожидает chart = {labels, values} и chart_label #}
+{{ chart|json_script:"chart-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        const data = JSON.parse(document.getElementById("chart-data").textContent);
+        const canvas = document.getElementById("price-chart");
+        if (!canvas || !data.values.length) return;
+        new Chart(canvas, {
+            type: "{{ chart_type|default:'line' }}",
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: "{{ chart_label|escapejs }}",
+                    data: data.values,
+                    borderColor: "#0d6efd",
+                    backgroundColor: data.values.map(v => v >= 0 ? "rgba(46,139,87,.7)" : "rgba(220,20,60,.7)"),
+                    borderWidth: {% if chart_type == "bar" %}0{% else %}2{% endif %},
+                    pointRadius: 0,
+                    tension: 0.1,
+                    fill: false,
+                }],
+            },
+            options: {
+                responsive: true,
+                interaction: {mode: "index", intersect: false},
+                plugins: {legend: {display: false}},
+                scales: {x: {ticks: {maxTicksLimit: 10, autoSkip: true}}},
+            },
+        });
+    })();
+</script>

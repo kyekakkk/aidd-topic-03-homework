@@ -1,0 +1,62 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}
+    <title>Мой портфель</title>
+{% endblock %}
+
+{% block content %}
+
+    <h3 class="mb-3">Мой портфель</h3>
+
+    {% if positions %}
+        <div class="row mb-3">
+            <div class="col-auto">Всего акций: <b>{{ total_quantity }}</b></div>
+            <div class="col-auto">Вложено: <b>{{ total_cost|floatformat:2 }}</b></div>
+            <div class="col-auto">Текущая стоимость: <b>{{ total_value|floatformat:2 }}</b></div>
+        </div>
+        {% if has_unpriced %}
+            <p class="text-muted">Для части акций нет текущей цены — они не учтены в текущей стоимости.</p>
+        {% endif %}
+
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th scope="col">Тикер</th>
+                <th scope="col">Название</th>
+                <th scope="col">Количество</th>
+                <th scope="col">Средняя цена</th>
+                <th scope="col">Текущая цена</th>
+                <th scope="col">Стоимость</th>
+                <th scope="col">Прибыль</th>
+                <th scope="col">Добавлено</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for position in positions %}
+                <tr>
+                    <td><a href="{% url 'dashboard:detail' position.share.id %}">{{ position.share.ticker }}</a></td>
+                    <td>{{ position.share.name }}</td>
+                    <td>{{ position.quantity }}</td>
+                    <td>{{ position.average_price|floatformat:2 }} {{ position.share.currency }}</td>
+                    <td>{{ position.share.last_price|floatformat:2|default:"—" }}</td>
+                    <td>{{ position.market_value|floatformat:2|default:"—" }}</td>
+                    {% if position.profit is None %}
+                        <td>—</td>
+                    {% elif position.profit >= 0 %}
+                        <td style="color: seagreen">+{{ position.profit|floatformat:2 }}</td>
+                    {% else %}
+                        <td style="color: crimson">{{ position.profit|floatformat:2 }}</td>
+                    {% endif %}
+                    <td>{{ position.created_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            В портфеле пока нет акций.
+            <a href="{% url 'dashboard:index' %}">Выберите акцию в списке</a> и нажмите «Купить» на её странице.
+        </div>
+    {% endif %}
+
+{% endblock %}

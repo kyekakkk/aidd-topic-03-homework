@@ -1,0 +1,5 @@
+<div class="btn-group mb-3" role="group" aria-label="Период">
+    {% for code, title in periods %}
+        <a href="?period={{ code }}" class="btn btn-outline-primary{% if code == period %} active{% endif %}">{{ title }}</a>
+    {% endfor %}
+</div>
